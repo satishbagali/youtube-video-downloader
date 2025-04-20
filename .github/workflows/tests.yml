@@ -28,15 +28,6 @@ jobs:
   test:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
-    env:
-      BASE_DIR: ${{ github.workspace }}/test_data
-      YOUTUBE_API_KEY: test_api_key_123
-      DOWNLOAD_DIR: ${{ github.workspace }}/test_data/downloads
-      TRANSCRIPT_DIR: ${{ github.workspace }}/test_data/transcripts
-      MAX_RESULTS: 50
-      GOOGLE_APPLICATION_CREDENTIALS: credentials.json
-      PYTHONPATH: ${{ github.workspace }}
-      PYTEST_CURRENT_TEST: true
     
     strategy:
       matrix:
@@ -61,26 +52,19 @@ jobs:
     - name: Set up test environment
       run: |
         # Create test directories
-        mkdir -p "$BASE_DIR"
-        mkdir -p "$DOWNLOAD_DIR"
-        mkdir -p "$TRANSCRIPT_DIR"
         mkdir -p test_results/coverage
-        chmod -R 777 "$BASE_DIR"
         
-        # Print environment for debugging
-        echo "Current environment:"
-        echo "BASE_DIR: $BASE_DIR"
-        echo "DOWNLOAD_DIR: $DOWNLOAD_DIR"
-        echo "TRANSCRIPT_DIR: $TRANSCRIPT_DIR"
-        echo "PYTHONPATH: $PYTHONPATH"
+        # Verify .env.test exists (it should be in the repository)
+        if [ ! -f .env.test ]; then
+          echo "Error: .env.test file not found"
+          exit 1
+        fi
+        
+        # Copy .env.test to .env for testing
+        cp .env.test .env
         
     - name: Run tests and generate reports
       run: |
-        # Print test environment
-        echo "Current directory: $(pwd)"
-        echo "Test environment variables:"
-        env | grep -E 'BASE_DIR|YOUTUBE|DOWNLOAD|TRANSCRIPT|MAX_RESULTS'
-        
         # Run tests with pytest (using pytest.ini configuration)
         python -m pytest
         
