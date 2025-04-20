@@ -1,6 +1,6 @@
 # YouTube Video Downloader
 
-[![Tests](https://github.com/satishbagali/youtube-video-downloader/actions/workflows/tests.yml/badge.svg)](https://github.com/satishbagali/youtube-video-downloader/actions/workflows/tests.yml)
+[![Python Tests](https://github.com/satishbagali/youtube-video-downloader/actions/workflows/python-tests.yml/badge.svg)](https://github.com/satishbagali/youtube-video-downloader/actions/workflows/python-tests.yml)
 [![codecov](https://codecov.io/gh/satishbagali/youtube-video-downloader/branch/main/graph/badge.svg)](https://codecov.io/gh/satishbagali/youtube-video-downloader)
 
 A Python application that allows you to download videos from YouTube channels and extract their transcriptions. This tool is particularly useful for content creators, researchers, and anyone who needs to archive YouTube content with their associated transcripts. The application provides a user-friendly command-line interface and handles various YouTube URL formats and video qualities.
@@ -13,6 +13,7 @@ A Python application that allows you to download videos from YouTube channels an
 - Support for various video quality options
 - Clean and interactive command-line interface
 - Comprehensive test coverage
+- GitHub Actions integration for automated testing
 
 The application is designed to be both powerful and user-friendly. It can handle various YouTube channel formats, download videos in your preferred quality, and automatically extract transcriptions when available. The interactive interface guides you through the process, making it accessible even for users with minimal technical experience.
 
@@ -249,3 +250,9 @@ After running tests, you can find:
 - Test results are available in the Actions tab
 - Coverage reports are uploaded to Codecov
 - Status badges show current test and coverage status 
+
+## Development
+
+- Python 3.11
+- pytest for testing
+- GitHub Actions for CI/CD 
