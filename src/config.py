@@ -52,7 +52,7 @@ class Config:
             if not base_dir:
                 raise ValueError("BASE_DIR not found in environment variables")
             
-            self._base_dir = Path(base_dir)
+            self._base_dir = Path(base_dir).resolve()
             if not self._base_dir.exists() and not self._base_dir.parent.exists():
                 raise PermissionError("Invalid base directory path")
             
@@ -61,10 +61,14 @@ class Config:
             if not self._api_key:
                 raise ValueError("YouTube API key not found in environment variables")
             
-            # Set up other directories
-            self._downloads_dir = Path(os.getenv('DOWNLOAD_DIR', self._base_dir / 'downloads'))
-            self._transcripts_dir = Path(os.getenv('TRANSCRIPT_DIR', self._base_dir / 'transcripts'))
-            self._credentials_path = Path(os.getenv('CREDENTIALS_PATH', self._base_dir / 'credentials.json'))
+            # Set up other directories with absolute paths
+            downloads_dir = os.getenv('DOWNLOAD_DIR')
+            transcripts_dir = os.getenv('TRANSCRIPT_DIR')
+            credentials_path = os.getenv('CREDENTIALS_PATH')
+            
+            self._downloads_dir = Path(downloads_dir).resolve() if downloads_dir else (self._base_dir / 'downloads').resolve()
+            self._transcripts_dir = Path(transcripts_dir).resolve() if transcripts_dir else (self._base_dir / 'transcripts').resolve()
+            self._credentials_path = Path(credentials_path).resolve() if credentials_path else (self._base_dir / 'credentials.json').resolve()
             
             # Create necessary directories
             self._ensure_directory_exists(self._base_dir)
