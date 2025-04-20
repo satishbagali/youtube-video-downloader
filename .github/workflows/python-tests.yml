@@ -16,9 +16,9 @@ on:
       - 'requirements.txt'
       - '.github/workflows/**'
 
-# Cancel in-progress runs for PRs and pushes to the same branch
+# Ensure only one workflow per ref/PR
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
