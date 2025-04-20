@@ -45,44 +45,59 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest pytest-html pytest-cov
+        pip install pytest pytest-html pytest-cov pytest-asyncio
+        pip install yt-dlp
         pip install -e .
         
     - name: Set up test environment
       run: |
-        # Create test directories
-        mkdir -p test_data/downloads
-        mkdir -p test_data/transcripts
+        # Create test directories with full permissions
+        mkdir -p ${{ github.workspace }}/test_data
+        mkdir -p ${{ github.workspace }}/test_data/downloads
+        mkdir -p ${{ github.workspace }}/test_data/transcripts
+        chmod -R 777 ${{ github.workspace }}/test_data
         
-        # Set up environment variables
+        # Create and export environment variables
         echo "YOUTUBE_API_KEY=dummy_key" >> $GITHUB_ENV
         echo "BASE_DIR=${{ github.workspace }}/test_data" >> $GITHUB_ENV
         echo "DOWNLOAD_DIR=${{ github.workspace }}/test_data/downloads" >> $GITHUB_ENV
         echo "TRANSCRIPT_DIR=${{ github.workspace }}/test_data/transcripts" >> $GITHUB_ENV
         
+        # Create a .env file for tests that load from it
+        echo "YOUTUBE_API_KEY=dummy_key" > .env
+        echo "BASE_DIR=${{ github.workspace }}/test_data" >> .env
+        echo "DOWNLOAD_DIR=${{ github.workspace }}/test_data/downloads" >> .env
+        echo "TRANSCRIPT_DIR=${{ github.workspace }}/test_data/transcripts" >> .env
+        
     - name: Run tests and generate reports
       env:
-        YOUTUBE_API_KEY: ${{ env.YOUTUBE_API_KEY }}
-        BASE_DIR: ${{ env.BASE_DIR }}
-        DOWNLOAD_DIR: ${{ env.DOWNLOAD_DIR }}
-        TRANSCRIPT_DIR: ${{ env.TRANSCRIPT_DIR }}
+        YOUTUBE_API_KEY: dummy_key
+        BASE_DIR: ${{ github.workspace }}/test_data
+        DOWNLOAD_DIR: ${{ github.workspace }}/test_data/downloads
+        TRANSCRIPT_DIR: ${{ github.workspace }}/test_data/transcripts
         PYTHONPATH: ${{ github.workspace }}
       run: |
-        # Print directory structure for debugging
+        # Print environment for debugging
+        echo "Current environment:"
+        env | grep -E 'BASE_DIR|DOWNLOAD_DIR|TRANSCRIPT_DIR|YOUTUBE_API_KEY'
         echo "Current directory: $(pwd)"
         echo "Directory contents:"
         ls -la
+        echo "Test data directory contents:"
+        ls -la ${{ github.workspace }}/test_data
         echo "PYTHONPATH: $PYTHONPATH"
         
-        # Run tests with pytest directly instead of run_tests.py
-        pytest tests/ --cov=src/ --cov-report=html --cov-report=term-missing
+        # Run tests with pytest
+        pytest tests/ -v --cov=src/ --cov-report=html --cov-report=term-missing
         
     - name: Upload test results
       uses: actions/upload-artifact@v4
       if: always()  # Run even if tests fail
       with:
         name: test-results-${{ github.sha }}
-        path: test_results/
+        path: |
+          test_results/
+          htmlcov/
         retention-days: 30
         
     - name: Upload coverage to Codecov
@@ -91,5 +106,5 @@ jobs:
       continue-on-error: true  # Don't fail the workflow if coverage upload fails
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        files: ./test_results/*/coverage/.coverage
+        files: ./coverage.xml
         fail_ci_if_error: false  # Don't fail if coverage upload fails 
