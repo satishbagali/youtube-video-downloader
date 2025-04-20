@@ -1,122 +1,127 @@
+"""Configuration management module.
+
+This module provides a singleton Config class that manages application settings,
+including API keys, directory paths, and environment variables. It ensures
+consistent configuration across the application and handles initialization
+of required directories.
+
+Example:
+    config = Config()
+    api_key = config.get_api_key()
+    downloads_dir = config.get_downloads_dir()
 """
-Configuration management module
-"""
+
 import os
 from pathlib import Path
 from dotenv import load_dotenv
 
 class Config:
-    """Configuration class for managing application settings."""
+    """Singleton class for managing application configuration.
     
-    # Class constants for YouTube API
+    This class ensures only one instance exists and manages all configuration
+    settings, including API keys and directory paths. It handles the loading
+    of environment variables and initialization of required directories.
+    
+    Attributes:
+        YOUTUBE_API_SERVICE_NAME (str): Name of the YouTube API service
+        YOUTUBE_API_VERSION (str): Version of the YouTube API to use
+    """
+    
+    # Class variables for YouTube API configuration
     YOUTUBE_API_SERVICE_NAME = "youtube"
     YOUTUBE_API_VERSION = "v3"
     
-    # Class variable for singleton instance
+    # Singleton instance
     _instance = None
-    _initialized = False
-
+    
     def __new__(cls):
-        """Ensure singleton pattern"""
+        """Ensure only one instance of Config exists."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
-
+        
     def __init__(self):
-        """Initialize configuration"""
-        if self._initialized:
-            return
+        """Initialize configuration if not already initialized."""
+        if not hasattr(self, '_initialized'):
+            # Load environment variables
+            load_dotenv(override=True)
             
-        # Get API key first
-        self._api_key = os.getenv('YOUTUBE_API_KEY')
-        if not self._api_key:
-            raise ValueError("YouTube API key not found in environment variables")
-        
-        # Set up base paths
-        base_dir = os.getenv('BASE_DIR')
-        if not base_dir:
-            raise ValueError("BASE_DIR not found in environment variables")
-        
-        try:
-            base_path = Path(base_dir).resolve()
-            if not base_path.exists():
-                base_path.mkdir(parents=True, exist_ok=True)
-            self._base_dir = base_path
-        except (OSError, RuntimeError) as e:
-            raise PermissionError(f"Invalid base directory path: {base_dir}") from e
-        
-        # Set up downloads directory
-        downloads_path = os.getenv('DOWNLOAD_DIR')
-        if downloads_path:
-            try:
-                downloads_dir = Path(downloads_path).resolve()
-                if not downloads_dir.exists():
-                    downloads_dir.mkdir(parents=True, exist_ok=True)
-                self._downloads_dir = downloads_dir
-            except (OSError, RuntimeError):
-                self._downloads_dir = (self._base_dir / 'downloads').resolve()
-        else:
-            self._downloads_dir = (self._base_dir / 'downloads').resolve()
-        self._ensure_directory_exists(self._downloads_dir)
-        
-        # Set up transcripts directory
-        transcripts_path = os.getenv('TRANSCRIPT_DIR')
-        if transcripts_path:
-            try:
-                transcripts_dir = Path(transcripts_path).resolve()
-                if not transcripts_dir.exists():
-                    transcripts_dir.mkdir(parents=True, exist_ok=True)
-                self._transcripts_dir = transcripts_dir
-            except (OSError, RuntimeError):
-                self._transcripts_dir = (self._base_dir / 'transcripts').resolve()
-        else:
-            self._transcripts_dir = (self._base_dir / 'transcripts').resolve()
-        self._ensure_directory_exists(self._transcripts_dir)
-        
-        # Set up credentials path
-        credentials_path = os.getenv('CREDENTIALS_PATH')
-        if credentials_path:
-            try:
-                creds_path = Path(credentials_path).resolve()
-                if not creds_path.parent.exists():
-                    creds_path.parent.mkdir(parents=True, exist_ok=True)
-                self._credentials_path = creds_path
-            except (OSError, RuntimeError):
-                self._credentials_path = (self._base_dir / 'credentials.json').resolve()
-        else:
-            self._credentials_path = (self._base_dir / 'credentials.json').resolve()
-        
-        self._initialized = True
-
+            # Get and validate API key first
+            self._api_key = os.getenv('YOUTUBE_API_KEY')
+            if not self._api_key:
+                raise ValueError("YouTube API key not found in environment variables")
+            
+            # Set up base directory
+            self._base_dir = Path(os.getenv('BASE_DIR', os.getcwd()))
+            self._ensure_directory_exists(self._base_dir)
+            
+            # Change to base directory
+            os.chdir(str(self._base_dir))
+            
+            # Set up other directories
+            self._downloads_dir = Path(os.getenv('DOWNLOAD_DIR', self._base_dir / 'downloads'))
+            self._transcripts_dir = Path(os.getenv('TRANSCRIPT_DIR', self._base_dir / 'transcripts'))
+            self._credentials_path = Path(os.getenv('CREDENTIALS_PATH', self._base_dir / 'credentials.json'))
+            
+            # Create necessary directories
+            self._ensure_directory_exists(self._downloads_dir)
+            self._ensure_directory_exists(self._transcripts_dir)
+            
+            # Mark as initialized
+            self._initialized = True
+    
     def _ensure_directory_exists(self, directory: Path) -> None:
-        """
-        Ensure that the specified directory exists, creating it if necessary.
+        """Create directory if it doesn't exist.
         
         Args:
-            directory (Path): The directory path to check/create
+            directory (Path): Directory path to create
             
         Raises:
-            PermissionError: If directory creation fails due to permissions
+            PermissionError: If directory cannot be created due to permissions
+            OSError: If directory creation fails for other reasons
         """
         try:
             directory.mkdir(parents=True, exist_ok=True)
-        except (PermissionError, OSError) as e:
+        except PermissionError as e:
             raise PermissionError(f"Permission denied creating directory: {directory}") from e
-
+        except OSError as e:
+            raise OSError(f"Failed to create directory: {directory}") from e
+    
     def get_api_key(self) -> str:
-        """Get the YouTube API key."""
+        """Get the YouTube API key.
+        
+        Returns:
+            str: The API key
+            
+        Raises:
+            ValueError: If API key is not set
+        """
+        if not self._api_key:
+            raise ValueError("YouTube API key not found in environment variables")
         return self._api_key
-
+    
     def get_downloads_dir(self) -> Path:
-        """Get the downloads directory path."""
+        """Get the downloads directory path.
+        
+        Returns:
+            Path: Path to downloads directory
+        """
         return self._downloads_dir
-
+    
     def get_transcripts_dir(self) -> Path:
-        """Get the transcripts directory path."""
+        """Get the transcripts directory path.
+        
+        Returns:
+            Path: Path to transcripts directory
+        """
         return self._transcripts_dir
-
+    
     def get_credentials_path(self) -> Path:
-        """Get the credentials file path."""
+        """Get the credentials file path.
+        
+        Returns:
+            Path: Path to credentials file
+        """
         return self._credentials_path
 
     def ensure_directories_exist(self):
