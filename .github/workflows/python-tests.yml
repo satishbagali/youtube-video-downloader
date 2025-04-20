@@ -26,17 +26,26 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest
         pip install -r requirements.txt
-    
-    - name: List directory structure
+
+    - name: Set up environment
       run: |
-        echo "Current directory:"
-        pwd
-        echo "\nDirectory structure:"
+        # Create necessary directories
+        mkdir -p downloads transcripts
+        # Create .env file with test values
+        echo "YOUTUBE_API_KEY=dummy_key" > .env
+        echo "DOWNLOAD_DIR=./downloads" >> .env
+        echo "TRANSCRIPT_DIR=./transcripts" >> .env
+        echo "MAX_RESULTS=50" >> .env
+        # List directory structure for debugging
+        echo "Project structure:"
         ls -R
         
     - name: Run tests
       env:
         PYTHONPATH: ${{ github.workspace }}
+        YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY || 'dummy_key_for_tests' }}
       run: |
-        python -c "import sys; print(sys.path)"
+        # Print Python path for debugging
+        python -c "import sys; print('Python path:', sys.path)"
+        # Run tests with verbose output
         pytest tests/ -v --import-mode=append 
