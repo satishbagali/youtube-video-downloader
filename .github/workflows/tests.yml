@@ -61,15 +61,20 @@ jobs:
         # Export minimal environment variables
         echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
         echo "PYTEST_CURRENT_TEST=true" >> $GITHUB_ENV
+        echo "YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}" >> $GITHUB_ENV
+        echo "BASE_DIR=${{ github.workspace }}/test_data" >> $GITHUB_ENV
         
     - name: Run tests and generate reports
       env:
         PYTHONPATH: ${{ github.workspace }}
         PYTEST_CURRENT_TEST: true
+        YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        BASE_DIR: ${{ github.workspace }}/test_data
       run: |
         # Print test environment
         echo "Current directory: $(pwd)"
         echo "PYTHONPATH: $PYTHONPATH"
+        echo "BASE_DIR: $BASE_DIR"
         
         # Run tests with pytest (using pytest.ini configuration)
         python -m pytest
