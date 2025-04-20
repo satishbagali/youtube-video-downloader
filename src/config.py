@@ -62,9 +62,25 @@ class Config:
                 raise ValueError("YouTube API key not found in environment variables")
             
             # Set up other directories
-            self._downloads_dir = Path(os.getenv('DOWNLOAD_DIR', str(self._base_dir / 'downloads'))).resolve()
-            self._transcripts_dir = Path(os.getenv('TRANSCRIPT_DIR', str(self._base_dir / 'transcripts'))).resolve()
-            self._credentials_path = Path(os.getenv('CREDENTIALS_PATH', str(self._base_dir / 'credentials.json'))).resolve()
+            downloads_dir = os.getenv('DOWNLOAD_DIR')
+            transcripts_dir = os.getenv('TRANSCRIPT_DIR')
+            credentials_path = os.getenv('CREDENTIALS_PATH')
+            
+            # Resolve paths relative to base directory if not absolute
+            if downloads_dir:
+                self._downloads_dir = Path(downloads_dir).resolve()
+            else:
+                self._downloads_dir = (self._base_dir / 'downloads').resolve()
+                
+            if transcripts_dir:
+                self._transcripts_dir = Path(transcripts_dir).resolve()
+            else:
+                self._transcripts_dir = (self._base_dir / 'transcripts').resolve()
+                
+            if credentials_path:
+                self._credentials_path = Path(credentials_path).resolve()
+            else:
+                self._credentials_path = (self._base_dir / 'credentials.json').resolve()
             
             # Create necessary directories
             self._ensure_directory_exists(self._base_dir)
