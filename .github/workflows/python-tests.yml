@@ -27,6 +27,16 @@ jobs:
         pip install pytest
         pip install -r requirements.txt
     
-    - name: Run tests
+    - name: List directory structure
       run: |
-        pytest tests/ -v 
+        echo "Current directory:"
+        pwd
+        echo "\nDirectory structure:"
+        ls -R
+        
+    - name: Run tests
+      env:
+        PYTHONPATH: ${{ github.workspace }}
+      run: |
+        python -c "import sys; print(sys.path)"
+        pytest tests/ -v --import-mode=append 
