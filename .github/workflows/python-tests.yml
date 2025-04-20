@@ -16,13 +16,15 @@ on:
       - 'requirements.txt'
       - '.github/workflows/**'
 
-# Ensure only one workflow runs at a time
+# Cancel in-progress runs for PRs and pushes to the same branch
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   test:
+    # Run only on push to main or PR from forks
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
 
     steps:
@@ -44,13 +46,4 @@ jobs:
         YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         BASE_DIR: /tmp
       run: |
-        pytest tests/ --cov=src/ --cov-report=xml --cov-report=term
-        
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      if: github.repository == 'satishbagali/youtube-video-downloader'
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./coverage.xml
-        fail_ci_if_error: false
-        verbose: true 
+        pytest tests/ --cov=src/ --cov-report=term-missing 
