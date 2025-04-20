@@ -28,8 +28,31 @@ jobs:
         pip install pytest pytest-html pytest-cov
         pip install -r requirements.txt
         
-    - name: Run tests and generate reports
+    - name: Set up test environment
       run: |
+        # Create test directories
+        mkdir -p test_data/downloads
+        mkdir -p test_data/transcripts
+        
+        # Set up environment variables
+        echo "YOUTUBE_API_KEY=dummy_key" >> $GITHUB_ENV
+        echo "BASE_DIR=${{ github.workspace }}/test_data" >> $GITHUB_ENV
+        echo "DOWNLOAD_DIR=${{ github.workspace }}/test_data/downloads" >> $GITHUB_ENV
+        echo "TRANSCRIPT_DIR=${{ github.workspace }}/test_data/transcripts" >> $GITHUB_ENV
+        
+    - name: Run tests and generate reports
+      env:
+        YOUTUBE_API_KEY: ${{ env.YOUTUBE_API_KEY }}
+        BASE_DIR: ${{ env.BASE_DIR }}
+        DOWNLOAD_DIR: ${{ env.DOWNLOAD_DIR }}
+        TRANSCRIPT_DIR: ${{ env.TRANSCRIPT_DIR }}
+      run: |
+        # Print directory structure for debugging
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+        
+        # Run tests
         python run_tests.py
         
     - name: Upload test results
@@ -42,6 +65,7 @@ jobs:
         
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
+      if: success()  # Only run if tests pass
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./test_results/*/coverage/.coverage
