@@ -58,23 +58,46 @@ jobs:
         # Create test results directory
         mkdir -p test_results/coverage
         
-        # Export minimal environment variables
+        # Copy test environment file
+        cp .env.test .env
+        
+        # Set environment variables from .env.test
+        export YOUTUBE_API_KEY=test_api_key_123
+        export DOWNLOAD_DIR="$TEST_BASE_DIR/downloads"
+        export TRANSCRIPT_DIR="$TEST_BASE_DIR/transcripts"
+        export MAX_RESULTS=50
+        export GOOGLE_APPLICATION_CREDENTIALS=credentials.json
+        export BASE_DIR="$TEST_BASE_DIR"
+        export PYTHONPATH="${{ github.workspace }}"
+        export PYTEST_CURRENT_TEST=true
+        
+        # Export for GitHub Actions environment
+        echo "YOUTUBE_API_KEY=test_api_key_123" >> $GITHUB_ENV
+        echo "DOWNLOAD_DIR=$TEST_BASE_DIR/downloads" >> $GITHUB_ENV
+        echo "TRANSCRIPT_DIR=$TEST_BASE_DIR/transcripts" >> $GITHUB_ENV
+        echo "MAX_RESULTS=50" >> $GITHUB_ENV
+        echo "GOOGLE_APPLICATION_CREDENTIALS=credentials.json" >> $GITHUB_ENV
+        echo "BASE_DIR=$TEST_BASE_DIR" >> $GITHUB_ENV
         echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
         echo "PYTEST_CURRENT_TEST=true" >> $GITHUB_ENV
-        echo "YOUTUBE_API_KEY=${{ secrets.YOUTUBE_API_KEY }}" >> $GITHUB_ENV
-        echo "BASE_DIR=${{ github.workspace }}/test_data" >> $GITHUB_ENV
         
     - name: Run tests and generate reports
       env:
         PYTHONPATH: ${{ github.workspace }}
         PYTEST_CURRENT_TEST: true
-        YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        YOUTUBE_API_KEY: test_api_key_123
         BASE_DIR: ${{ github.workspace }}/test_data
+        DOWNLOAD_DIR: ${{ github.workspace }}/test_data/downloads
+        TRANSCRIPT_DIR: ${{ github.workspace }}/test_data/transcripts
+        MAX_RESULTS: 50
+        GOOGLE_APPLICATION_CREDENTIALS: credentials.json
       run: |
         # Print test environment
         echo "Current directory: $(pwd)"
         echo "PYTHONPATH: $PYTHONPATH"
         echo "BASE_DIR: $BASE_DIR"
+        echo "Test environment variables:"
+        env | grep -E 'YOUTUBE|DOWNLOAD|TRANSCRIPT|MAX_RESULTS|BASE_DIR'
         
         # Run tests with pytest (using pytest.ini configuration)
         python -m pytest
