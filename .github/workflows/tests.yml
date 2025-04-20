@@ -3,21 +3,35 @@ name: Python Tests
 on:
   push:
     branches: [ main ]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - '.github/workflows/**'
+      - 'tests/**'
   pull_request:
     branches: [ main ]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - '.github/workflows/**'
+      - 'tests/**'
   workflow_dispatch:  # Allows manual triggering
 
-# Cancel in-progress runs for PRs and pushes to the same branch
+# Enhanced concurrency control
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   test:
+    # Run only on push to main or PR from forks
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.11"]
+      # Prevent all matrix jobs from failing if one fails
+      fail-fast: false
 
     steps:
     - uses: actions/checkout@v4
