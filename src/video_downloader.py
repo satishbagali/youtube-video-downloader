@@ -9,6 +9,20 @@ from config.settings import Config
 from typing import Optional, Dict, Any, List
 
 class VideoDownloader:
+    """
+    A class for downloading YouTube videos with configurable options.
+    
+    This class uses yt-dlp to handle video downloads, with support for:
+    - Configurable output directory
+    - Progress tracking during downloads
+    - Video quality selection (default: best quality up to 720p)
+    - Single and batch video downloads
+    - Error handling and download status reporting
+    
+    Attributes:
+        output_dir (str): Directory where downloaded videos will be saved
+        ydl_opts (dict): Configuration options for yt-dlp
+    """
     def __init__(self, output_dir: str = Config.DOWNLOAD_DIR):
         """Initialize the video downloader"""
         self.output_dir = output_dir
