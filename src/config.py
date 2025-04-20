@@ -68,17 +68,20 @@ class Config:
             
             # Resolve paths relative to base directory if not absolute
             if downloads_dir:
-                self._downloads_dir = Path(downloads_dir).resolve()
+                downloads_path = Path(downloads_dir)
+                self._downloads_dir = downloads_path if downloads_path.is_absolute() else (self._base_dir / downloads_dir).resolve()
             else:
                 self._downloads_dir = (self._base_dir / 'downloads').resolve()
                 
             if transcripts_dir:
-                self._transcripts_dir = Path(transcripts_dir).resolve()
+                transcripts_path = Path(transcripts_dir)
+                self._transcripts_dir = transcripts_path if transcripts_path.is_absolute() else (self._base_dir / transcripts_dir).resolve()
             else:
                 self._transcripts_dir = (self._base_dir / 'transcripts').resolve()
                 
             if credentials_path:
-                self._credentials_path = Path(credentials_path).resolve()
+                credentials_path_obj = Path(credentials_path)
+                self._credentials_path = credentials_path_obj if credentials_path_obj.is_absolute() else (self._base_dir / credentials_path).resolve()
             else:
                 self._credentials_path = (self._base_dir / 'credentials.json').resolve()
             
