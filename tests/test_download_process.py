@@ -14,14 +14,25 @@ from googleapiclient.errors import HttpError
 @pytest.fixture
 def test_environment(tmp_path):
     """Set up test environment with temporary directories"""
+    # Set BASE_DIR first
+    os.environ['BASE_DIR'] = str(tmp_path)
+    
+    # Create and set other directories
     downloads_dir = tmp_path / 'downloads'
     transcripts_dir = tmp_path / 'transcripts'
     downloads_dir.mkdir(parents=True, exist_ok=True)
     transcripts_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Set environment variables
     os.environ['DOWNLOAD_DIR'] = str(downloads_dir)
     os.environ['TRANSCRIPT_DIR'] = str(transcripts_dir)
     os.environ['YOUTUBE_API_KEY'] = 'test_api_key'
+    
+    # Reset Config singleton to ensure clean state
+    Config.reset()
+    
     return {
+        'base_dir': tmp_path,
         'downloads_dir': downloads_dir,
         'transcripts_dir': transcripts_dir
     }

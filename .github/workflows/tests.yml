@@ -52,22 +52,29 @@ jobs:
     - name: Set up test environment
       run: |
         # Create test directories with full permissions
-        mkdir -p ${{ github.workspace }}/test_data
-        mkdir -p ${{ github.workspace }}/test_data/downloads
-        mkdir -p ${{ github.workspace }}/test_data/transcripts
-        chmod -R 777 ${{ github.workspace }}/test_data
+        TEST_BASE_DIR="${{ github.workspace }}/test_data"
+        mkdir -p "$TEST_BASE_DIR"
+        mkdir -p "$TEST_BASE_DIR/downloads"
+        mkdir -p "$TEST_BASE_DIR/transcripts"
+        chmod -R 777 "$TEST_BASE_DIR"
         
-        # Create and export environment variables
+        # Export environment variables
+        echo "BASE_DIR=$TEST_BASE_DIR" >> $GITHUB_ENV
+        echo "DOWNLOAD_DIR=$TEST_BASE_DIR/downloads" >> $GITHUB_ENV
+        echo "TRANSCRIPT_DIR=$TEST_BASE_DIR/transcripts" >> $GITHUB_ENV
         echo "YOUTUBE_API_KEY=dummy_key" >> $GITHUB_ENV
-        echo "BASE_DIR=${{ github.workspace }}/test_data" >> $GITHUB_ENV
-        echo "DOWNLOAD_DIR=${{ github.workspace }}/test_data/downloads" >> $GITHUB_ENV
-        echo "TRANSCRIPT_DIR=${{ github.workspace }}/test_data/transcripts" >> $GITHUB_ENV
         
-        # Create a .env file for tests that load from it
-        echo "YOUTUBE_API_KEY=dummy_key" > .env
-        echo "BASE_DIR=${{ github.workspace }}/test_data" >> .env
-        echo "DOWNLOAD_DIR=${{ github.workspace }}/test_data/downloads" >> .env
-        echo "TRANSCRIPT_DIR=${{ github.workspace }}/test_data/transcripts" >> .env
+        # Create .env file for tests that load from it
+        echo "BASE_DIR=$TEST_BASE_DIR" > .env
+        echo "DOWNLOAD_DIR=$TEST_BASE_DIR/downloads" >> .env
+        echo "TRANSCRIPT_DIR=$TEST_BASE_DIR/transcripts" >> .env
+        echo "YOUTUBE_API_KEY=dummy_key" >> .env
+        
+        # Debug output
+        echo "Created test directories:"
+        ls -la "$TEST_BASE_DIR"
+        echo "Environment file contents:"
+        cat .env
         
     - name: Run tests and generate reports
       env:
@@ -81,11 +88,8 @@ jobs:
         echo "Current environment:"
         env | grep -E 'BASE_DIR|DOWNLOAD_DIR|TRANSCRIPT_DIR|YOUTUBE_API_KEY'
         echo "Current directory: $(pwd)"
-        echo "Directory contents:"
-        ls -la
         echo "Test data directory contents:"
         ls -la ${{ github.workspace }}/test_data
-        echo "PYTHONPATH: $PYTHONPATH"
         
         # Run tests with pytest
         pytest tests/ -v --cov=src/ --cov-report=html --cov-report=term-missing
