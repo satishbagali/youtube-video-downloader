@@ -18,4 +18,30 @@ def setup_test_results():
     # Create subdirectories for different types of results
     (results_dir / 'coverage').mkdir(exist_ok=True)
     
-    return results_dir 
+    # Ensure we're in test mode
+    os.environ['PYTEST_CURRENT_TEST'] = 'True'
+    
+    return results_dir
+
+@pytest.fixture(autouse=True)
+def setup_test_env():
+    """Set up test environment variables."""
+    # Store original environment variables
+    original_env = {}
+    for key in ['PYTEST_CURRENT_TEST', 'YOUTUBE_API_KEY', 'BASE_DIR']:
+        if key in os.environ:
+            original_env[key] = os.environ[key]
+    
+    # Set test environment variables
+    os.environ['PYTEST_CURRENT_TEST'] = 'dummy_test'
+    os.environ['YOUTUBE_API_KEY'] = 'test_api_key'
+    os.environ['BASE_DIR'] = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    yield
+    
+    # Restore original environment variables
+    for key in ['PYTEST_CURRENT_TEST', 'YOUTUBE_API_KEY', 'BASE_DIR']:
+        if key in original_env:
+            os.environ[key] = original_env[key]
+        elif key in os.environ:
+            del os.environ[key] 
