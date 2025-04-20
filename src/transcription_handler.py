@@ -4,7 +4,7 @@ Module for handling video transcriptions
 
 import os
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
 from youtube_transcript_api.formatters import TextFormatter
@@ -26,6 +26,38 @@ class TranscriptionHandler:
         except:
             return None
 
+    def has_captions(self, video_id: str) -> bool:
+        """
+        Check if a video has available captions
+        
+        Args:
+            video_id (str): The YouTube video ID
+            
+        Returns:
+            bool: True if captions are available, False otherwise
+        """
+        try:
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            return bool(transcript_list.find_manually_created_transcript())
+        except Exception:
+            return False
+
+    def get_transcript(self, video_id: str, language: str = 'en') -> Optional[List[Dict[str, Any]]]:
+        """
+        Get transcript for a video in specified language
+        
+        Args:
+            video_id (str): The YouTube video ID
+            language (str): Language code (default: 'en')
+            
+        Returns:
+            Optional[List[Dict[str, Any]]]: List of transcript entries or None if not found
+        """
+        try:
+            return YouTubeTranscriptApi.get_transcript(video_id, languages=[language])
+        except Exception:
+            return None
+
     def format_transcript(self, transcript_list):
         """Format transcript entries into readable text"""
         formatted_lines = []
@@ -37,6 +69,25 @@ class TranscriptionHandler:
             timestamp = f"[{minutes:02d}:{seconds:02d}]"
             formatted_lines.append(f"{timestamp} {text}")
         return "\n".join(formatted_lines)
+
+    def save_transcript(self, transcript: List[Dict[str, Any]], file_path: str, include_timestamps: bool = False) -> None:
+        """
+        Save transcript to a file
+        
+        Args:
+            transcript (List[Dict[str, Any]]): List of transcript entries
+            file_path (str): Path to save the transcript
+            include_timestamps (bool): Whether to include timestamps in output
+        """
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                if include_timestamps:
+                    f.write(self.format_transcript(transcript))
+                else:
+                    for entry in transcript:
+                        f.write(f"{entry['text']}\n")
+        except Exception as e:
+            print(f"Error saving transcript: {str(e)}")
 
     def get_transcription(self, video_url: str, video_title: str) -> bool:
         """
@@ -56,35 +107,24 @@ class TranscriptionHandler:
                 print(f"Could not extract video ID from URL: {video_url}")
                 return False
 
+            # Check if captions are available
+            if not self.has_captions(video_id):
+                print(f"No captions available for video: {video_title}")
+                return False
+
             # Get transcript
             print(f"\nGetting transcription for: {video_title}")
-            try:
-                transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
-            except NoTranscriptFound:
-                print(f"No transcripts found for video: {video_title}")
-                return False
-            except TranscriptsDisabled:
-                print(f"Transcripts are disabled for video: {video_title}")
-                return False
-            
+            transcript_list = self.get_transcript(video_id)
             if not transcript_list:
                 print(f"No transcript content available for video: {video_title}")
                 return False
-            
-            # Format transcript using our custom formatter
-            formatted_transcript = self.format_transcript(transcript_list)
             
             # Create transcript file
             safe_title = "".join(c for c in video_title if c.isalnum() or c in (' ', '-', '_')).rstrip()
             transcript_file = os.path.join(self.transcript_dir, f"{safe_title}.txt")
             
-            with open(transcript_file, 'w', encoding='utf-8') as f:
-                # Write header
-                f.write(f"Title: {video_title}\n")
-                f.write(f"URL: {video_url}\n")
-                f.write("\n\n")
-                # Write transcript
-                f.write(formatted_transcript)
+            # Save transcript with timestamps
+            self.save_transcript(transcript_list, transcript_file, include_timestamps=True)
             
             print(f"Transcription saved to: {transcript_file}")
             return True

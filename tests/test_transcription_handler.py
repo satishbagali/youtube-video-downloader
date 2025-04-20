@@ -6,43 +6,187 @@ All tests use mocking to avoid actual API calls to the YouTube Transcript API se
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 import os
 from src.transcription_handler import TranscriptionHandler
 
 @pytest.fixture
-def transcription_handler(tmp_path):
-    """
-    Fixture to create a TranscriptionHandler instance.
-    Uses pytest's tmp_path fixture to create a temporary directory for testing.
-    """
-    output_dir = tmp_path / "transcripts"
-    os.makedirs(output_dir, exist_ok=True)
-    handler = TranscriptionHandler(output_dir=str(output_dir))
-    return handler
+def handler(tmp_path):
+    """Create a TranscriptionHandler instance for testing"""
+    return TranscriptionHandler(str(tmp_path))
 
-@pytest.mark.parametrize("video_id,has_captions", [
-    ("video1", True),
-    ("video2", False),
-])
-def test_check_transcript_availability(transcription_handler, video_id, has_captions):
-    """
-    Test the availability check for video transcripts.
-    Verifies that the handler correctly identifies videos with and without
-    available captions, handling both successful and failed transcript checks.
-    """
+@pytest.fixture
+def mock_transcript():
+    """Create a mock transcript"""
+    return [
+        {"text": "First line", "start": 0.0, "duration": 2.0},
+        {"text": "Second line", "start": 2.0, "duration": 2.0}
+    ]
+
+def test_check_transcript_availability(handler):
+    """Test checking transcript availability"""
     with patch('youtube_transcript_api.YouTubeTranscriptApi.list_transcripts') as mock_list:
-        if has_captions:
-            mock_list.return_value = Mock(
-                find_manually_created_transcript=Mock(return_value=True)
-            )
-        else:
-            mock_list.side_effect = Exception("No transcript available")
+        # Mock transcript list
+        mock_transcript_list = MagicMock()
+        mock_transcript_list.find_manually_created_transcript.return_value = True
+        mock_list.return_value = mock_transcript_list
         
-        result = transcription_handler.has_captions(video_id)
-        assert result == has_captions
+        assert handler.has_captions("video_id") is True
+        
+        # Test when no transcripts available
+        mock_transcript_list.find_manually_created_transcript.return_value = False
+        assert handler.has_captions("video_id") is False
 
-def test_get_transcript_success(transcription_handler):
+def test_get_transcript_success(handler, mock_transcript):
+    """Test successful transcript retrieval"""
+    with patch('youtube_transcript_api.YouTubeTranscriptApi.get_transcript') as mock_get:
+        mock_get.return_value = mock_transcript
+        result = handler.get_transcript("video_id")
+        assert result == mock_transcript
+
+def test_get_transcript_failure(handler):
+    """Test transcript retrieval failure"""
+    with patch('youtube_transcript_api.YouTubeTranscriptApi.get_transcript') as mock_get:
+        mock_get.side_effect = Exception("Transcript not found")
+        result = handler.get_transcript("video_id")
+        assert result is None
+
+def test_get_transcript_with_language(handler, mock_transcript):
+    """Test transcript retrieval with specific language"""
+    with patch('youtube_transcript_api.YouTubeTranscriptApi.get_transcript') as mock_get:
+        mock_get.return_value = mock_transcript
+        result = handler.get_transcript("video_id", language="en")
+        assert result == mock_transcript
+        mock_get.assert_called_with("video_id", languages=["en"])
+
+def test_save_transcript(handler, tmp_path, mock_transcript):
+    """Test saving transcript to file"""
+    output_file = tmp_path / "transcript.txt"
+    handler.save_transcript(mock_transcript, str(output_file))
+    
+    assert output_file.exists()
+    content = output_file.read_text()
+    assert "First line" in content
+    assert "Second line" in content
+
+def test_save_transcript_with_timestamps(handler, tmp_path, mock_transcript):
+    """Test saving transcript with timestamps"""
+    output_file = tmp_path / "transcript_with_timestamps.txt"
+    handler.save_transcript(mock_transcript, str(output_file), include_timestamps=True)
+    
+    assert output_file.exists()
+    content = output_file.read_text()
+    assert "[00:00]" in content
+    assert "[00:02]" in content
+
+def test_get_transcription(handler, tmp_path):
+    """Test full transcription process"""
+    with patch.multiple(handler,
+                       get_video_id=MagicMock(return_value="video_id"),
+                       has_captions=MagicMock(return_value=True),
+                       get_transcript=MagicMock(return_value=[{"text": "Test transcript", "start": 0.0}])):
+        
+        result = handler.get_transcription("https://youtube.com/watch?v=123", "Test Video")
+        assert result is True
+
+def test_error_handling(handler):
+    """Test error handling in transcription process"""
+    with patch.multiple(handler,
+                       get_video_id=MagicMock(return_value=None)):
+        result = handler.get_transcription("invalid_url", "Test Video")
+        assert result is False
+
+def test_get_video_id(handler):
+    """
+    Test video ID extraction from URL.
+    Verifies that the handler can correctly extract video IDs from YouTube URLs.
+    """
+    with patch('yt_dlp.YoutubeDL') as mock_ydl:
+        mock_instance = Mock()
+        mock_instance.extract_info.return_value = {'id': 'test123'}
+        mock_ydl.return_value.__enter__.return_value = mock_instance
+        
+        video_id = handler.get_video_id('https://youtube.com/watch?v=test123')
+        assert video_id == 'test123'
+
+def test_format_transcript(handler):
+    """
+    Test transcript formatting functionality.
+    Verifies that timestamps and text are properly formatted.
+    """
+    test_transcript = [
+        {'start': 0, 'text': 'First line'},
+        {'start': 65, 'text': 'Second line'}
+    ]
+    
+    formatted = handler.format_transcript(test_transcript)
+    assert '[00:00] First line' in formatted
+    assert '[01:05] Second line' in formatted
+
+def test_get_transcription_success(handler):
+    """
+    Test successful transcription retrieval and saving.
+    Verifies the complete workflow of getting and saving a transcript.
+    """
+    with patch('yt_dlp.YoutubeDL') as mock_ydl, \
+         patch('youtube_transcript_api.YouTubeTranscriptApi.get_transcript') as mock_get_transcript, \
+         patch('youtube_transcript_api.YouTubeTranscriptApi.list_transcripts') as mock_list_transcripts:
+        
+        # Mock video info extraction
+        mock_instance = Mock()
+        mock_instance.extract_info.return_value = {'id': 'test123'}
+        mock_ydl.return_value.__enter__.return_value = mock_instance
+        
+        # Mock transcript list
+        mock_transcript_list = Mock()
+        mock_transcript_list.find_manually_created_transcript.return_value = True
+        mock_list_transcripts.return_value = mock_transcript_list
+        
+        # Mock transcript retrieval
+        mock_get_transcript.return_value = [
+            {'start': 0, 'text': 'Test transcript'}
+        ]
+        
+        result = handler.get_transcription(
+            'https://youtube.com/watch?v=test123',
+            'Test Video'
+        )
+        assert result is True
+
+def test_get_transcription_failure(handler):
+    """
+    Test transcription failure scenarios.
+    Verifies proper error handling when transcription fails.
+    """
+    with patch('yt_dlp.YoutubeDL') as mock_ydl:
+        mock_instance = Mock()
+        mock_instance.extract_info.return_value = None
+        mock_ydl.return_value.__enter__.return_value = mock_instance
+        
+        result = handler.get_transcription(
+            'https://youtube.com/watch?v=invalid',
+            'Invalid Video'
+        )
+        assert result is False
+
+def test_get_multiple_transcriptions(handler):
+    """
+    Test batch transcription processing.
+    Verifies that multiple videos can be processed in sequence.
+    """
+    videos = [
+        {'url': 'https://youtube.com/watch?v=video1', 'title': 'Video 1'},
+        {'url': 'https://youtube.com/watch?v=video2', 'title': 'Video 2'}
+    ]
+    
+    with patch.object(handler, 'get_transcription') as mock_get:
+        mock_get.side_effect = [True, False]
+        
+        results = handler.get_multiple_transcriptions(videos)
+        assert results == [True, False]
+        assert mock_get.call_count == 2
+
+def test_get_transcript_success(handler):
     """
     Test successful transcript retrieval scenario.
     Verifies that the handler can properly fetch and parse transcript data,
@@ -65,12 +209,12 @@ def test_get_transcript_success(transcription_handler):
     with patch('youtube_transcript_api.YouTubeTranscriptApi.get_transcript') as mock_get:
         mock_get.return_value = mock_transcript
         
-        transcript = transcription_handler.get_transcript('video1')
+        transcript = handler.get_transcript('video1')
         assert len(transcript) == 2
         assert transcript[0]['text'] == 'First line'
         assert transcript[1]['text'] == 'Second line'
 
-def test_get_transcript_failure(transcription_handler):
+def test_get_transcript_failure(handler):
     """
     Test transcript retrieval failure handling.
     Ensures the handler gracefully handles failed transcript requests,
@@ -80,14 +224,14 @@ def test_get_transcript_failure(transcription_handler):
     with patch('youtube_transcript_api.YouTubeTranscriptApi.get_transcript') as mock_get:
         mock_get.side_effect = Exception("Failed to get transcript")
         
-        transcript = transcription_handler.get_transcript('video1')
+        transcript = handler.get_transcript('video1')
         assert transcript is None
 
 @pytest.mark.parametrize("language,expected_transcript", [
     ("en", [{'text': 'English text', 'start': 0.0}]),
     ("es", [{'text': 'Spanish text', 'start': 0.0}]),
 ])
-def test_get_transcript_with_language(transcription_handler, language, expected_transcript):
+def test_get_transcript_with_language(handler, language, expected_transcript):
     """
     Test transcript retrieval in different languages.
     Verifies that the handler can fetch transcripts in multiple languages,
@@ -97,10 +241,10 @@ def test_get_transcript_with_language(transcription_handler, language, expected_
     with patch('youtube_transcript_api.YouTubeTranscriptApi.get_transcript') as mock_get:
         mock_get.return_value = expected_transcript
         
-        transcript = transcription_handler.get_transcript('video1', language=language)
+        transcript = handler.get_transcript('video1', language=language)
         assert transcript == expected_transcript
 
-def test_save_transcript(transcription_handler, tmp_path):
+def test_save_transcript(handler, tmp_path):
     """
     Test transcript saving functionality.
     Verifies that transcripts are correctly saved to files with proper formatting,
@@ -116,7 +260,7 @@ def test_save_transcript(transcription_handler, tmp_path):
     file_path = tmp_path / "transcript.txt"
     
     # Test saving
-    transcription_handler.save_transcript(transcript, str(file_path))
+    handler.save_transcript(transcript, str(file_path))
     
     # Verify file contents
     assert file_path.exists()
@@ -124,7 +268,7 @@ def test_save_transcript(transcription_handler, tmp_path):
     assert 'Line 1' in content
     assert 'Line 2' in content
 
-def test_save_transcript_with_timestamps(transcription_handler, tmp_path):
+def test_save_transcript_with_timestamps(handler, tmp_path):
     """
     Test saving transcripts with timestamp information.
     Verifies that timestamps are correctly formatted and included in the output,
@@ -138,30 +282,13 @@ def test_save_transcript_with_timestamps(transcription_handler, tmp_path):
     
     file_path = tmp_path / "transcript_with_timestamps.txt"
     
-    transcription_handler.save_transcript(transcript, str(file_path), include_timestamps=True)
+    handler.save_transcript(transcript, str(file_path), include_timestamps=True)
     
     content = file_path.read_text()
     assert '[00:00]' in content
     assert '[00:01]' in content
 
-def test_format_transcript(transcription_handler):
-    """
-    Test transcript formatting functionality.
-    Verifies that the handler properly formats transcript data into readable text,
-    ensuring proper line breaks, timing information, and text formatting are
-    applied consistently.
-    """
-    transcript = [
-        {'text': 'Line 1', 'start': 0.0, 'duration': 1.0},
-        {'text': 'Line 2', 'start': 1.0, 'duration': 1.0}
-    ]
-    
-    formatted = transcription_handler.format_transcript(transcript)
-    assert isinstance(formatted, str)
-    assert 'Line 1' in formatted
-    assert 'Line 2' in formatted
-
-def test_error_handling(transcription_handler):
+def test_error_handling(handler):
     """
     Test comprehensive error handling scenarios.
     Verifies that the handler properly manages various error conditions,
@@ -169,9 +296,9 @@ def test_error_handling(transcription_handler):
     ensuring graceful degradation in all cases.
     """
     # Test with invalid video ID
-    assert transcription_handler.get_transcript('') is None
+    assert handler.get_transcript('') is None
     
     # Test with non-existent language
     with patch('youtube_transcript_api.YouTubeTranscriptApi.get_transcript') as mock_get:
         mock_get.side_effect = Exception("Language not available")
-        assert transcription_handler.get_transcript('video1', language='xx') is None 
+        assert handler.get_transcript('video1', language='xx') is None 

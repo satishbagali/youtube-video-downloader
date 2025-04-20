@@ -5,15 +5,16 @@ Module for handling YouTube API interactions
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from urllib.parse import urlparse, parse_qs
-from config.settings import Config
+from src.config import Config
 
 class YouTubeAPI:
     def __init__(self):
         """Initialize the YouTube API client"""
+        config = Config()
         self.youtube = build(
             Config.YOUTUBE_API_SERVICE_NAME,
             Config.YOUTUBE_API_VERSION,
-            developerKey=Config.YOUTUBE_API_KEY
+            developerKey=config.get_api_key()
         )
 
     def get_channel_id(self, channel_url):
@@ -107,7 +108,80 @@ class YouTubeAPI:
             print(f"Error extracting channel ID: {str(e)}")
             return None
 
-    def get_channel_videos(self, channel_id):
+    def extract_channel_id(self, channel_url: str) -> str:
+        """
+        Extract channel ID from a YouTube channel URL.
+        Returns None if the URL format requires an API call to resolve.
+        """
+        if 'youtube.com/channel/' in channel_url:
+            return channel_url.split('youtube.com/channel/')[1].split('/')[0]
+        # Custom URLs (/c/) and handle URLs (/@) require API calls
+        return None
+
+    def is_valid_video_url(self, url: str) -> bool:
+        """
+        Check if the given URL is a valid YouTube video URL.
+        """
+        return ('youtube.com/watch?v=' in url or 'youtu.be/' in url)
+
+    def get_channel_videos(self, channel_id: str, max_results: int = 50) -> list:
+        """
+        Get videos from a YouTube channel.
+        
+        Args:
+            channel_id (str): The ID of the YouTube channel
+            max_results (int): Maximum number of videos to retrieve (default: 50)
+        
+        Returns:
+            list: List of dictionaries containing video information
+        
+        Raises:
+            Exception: If there's an error retrieving the videos
+        """
+        try:
+            videos = []
+            request = self.youtube.search().list(
+                part="snippet",
+                channelId=channel_id,
+                maxResults=min(50, max_results),  # API limit is 50 per request
+                order="date",
+                type="video"
+            )
+            
+            while request and len(videos) < max_results:
+                response = request.execute()
+                
+                for item in response.get('items', []):
+                    if len(videos) >= max_results:
+                        break
+                        
+                    video_info = {
+                        'video_id': item['id']['videoId'],
+                        'title': item['snippet']['title'],
+                        'description': item['snippet']['description'],
+                        'published_at': item['snippet']['publishedAt']
+                    }
+                    videos.append(video_info)
+                
+                # Get the next page if available and needed
+                if 'nextPageToken' in response and len(videos) < max_results:
+                    request = self.youtube.search().list(
+                        part="snippet",
+                        channelId=channel_id,
+                        maxResults=min(50, max_results - len(videos)),
+                        order="date",
+                        type="video",
+                        pageToken=response['nextPageToken']
+                    )
+                else:
+                    request = None
+                    
+            return videos
+            
+        except Exception as e:
+            raise Exception(f"Failed to retrieve videos: {str(e)}")
+
+    def get_channel_videos_old(self, channel_id):
         """
         Fetch all videos from a channel
         Returns: List of dictionaries containing video details
@@ -143,4 +217,167 @@ class YouTubeAPI:
 
         except HttpError as e:
             print(f"An HTTP error occurred: {e}")
-            return None 
+            return None
+
+    def get_video_details(self, video_url: str) -> dict:
+        """
+        Get details of a specific video.
+        
+        Args:
+            video_url (str): The URL of the video
+            
+        Returns:
+            dict: Dictionary containing video details
+            
+        Raises:
+            ValueError: If the video URL is invalid
+            Exception: If there's an error retrieving video details
+        """
+        try:
+            # Extract video ID from URL
+            if not self.is_valid_video_url(video_url):
+                raise ValueError("Invalid YouTube video URL")
+            
+            video_id = video_url.split('v=')[1].split('&')[0] if 'v=' in video_url else video_url.split('/')[-1]
+            
+            # Get video details from API
+            request = self.youtube.videos().list(
+                part="snippet,contentDetails,statistics",
+                id=video_id
+            )
+            response = request.execute()
+            
+            if not response.get('items'):
+                raise ValueError(f"No video found with ID: {video_id}")
+            
+            video_info = response['items'][0]
+            return {
+                'id': video_id,
+                'title': video_info['snippet']['title'],
+                'description': video_info['snippet']['description'],
+                'duration': video_info['contentDetails']['duration'],
+                'view_count': video_info['statistics']['viewCount'],
+                'like_count': video_info['statistics'].get('likeCount', 0),
+                'published_at': video_info['snippet']['publishedAt']
+            }
+            
+        except HttpError as e:
+            raise Exception(f"YouTube API error: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Error getting video details: {str(e)}")
+
+    def get_video_info(self, video_id: str) -> dict:
+        """
+        Get information about a specific YouTube video.
+        
+        Args:
+            video_id (str): The ID of the YouTube video
+            
+        Returns:
+            dict: Dictionary containing video information
+            
+        Raises:
+            HttpError: If there's an error retrieving the video information
+        """
+        try:
+            request = self.youtube.videos().list(
+                part="snippet,contentDetails,statistics",
+                id=video_id
+            )
+            response = request.execute()
+            
+            if not response.get('items'):
+                raise ValueError(f"No video found with ID: {video_id}")
+                
+            video_data = response['items'][0]
+            return {
+                'id': video_data['id'],
+                'title': video_data['snippet']['title'],
+                'description': video_data['snippet']['description'],
+                'published_at': video_data['snippet']['publishedAt'],
+                'duration': video_data['contentDetails']['duration'],
+                'view_count': video_data['statistics'].get('viewCount', 0),
+                'like_count': video_data['statistics'].get('likeCount', 0),
+                'comment_count': video_data['statistics'].get('commentCount', 0)
+            }
+        except HttpError as e:
+            raise HttpError(e.resp, e.content)
+
+    def get_channel_info(self, channel_id: str) -> dict:
+        """
+        Get information about a specific YouTube channel.
+        
+        Args:
+            channel_id (str): The ID of the YouTube channel
+            
+        Returns:
+            dict: Dictionary containing channel information
+            
+        Raises:
+            HttpError: If there's an error retrieving the channel information
+        """
+        try:
+            request = self.youtube.channels().list(
+                part="snippet,statistics",
+                id=channel_id
+            )
+            response = request.execute()
+            
+            if not response.get('items'):
+                raise ValueError(f"No channel found with ID: {channel_id}")
+                
+            channel_data = response['items'][0]
+            return {
+                'id': channel_data['id'],
+                'title': channel_data['snippet']['title'],
+                'description': channel_data['snippet']['description'],
+                'published_at': channel_data['snippet']['publishedAt'],
+                'subscriber_count': channel_data['statistics'].get('subscriberCount', 0),
+                'video_count': channel_data['statistics'].get('videoCount', 0),
+                'view_count': channel_data['statistics'].get('viewCount', 0)
+            }
+        except HttpError as e:
+            raise HttpError(e.resp, e.content)
+
+    def search_videos(self, query: str, max_results: int = 25, **kwargs) -> list:
+        """
+        Search for YouTube videos based on a query.
+        
+        Args:
+            query (str): The search query
+            max_results (int): Maximum number of results to return (default: 25)
+            **kwargs: Additional search parameters (e.g., order, publishedAfter)
+            
+        Returns:
+            list: List of dictionaries containing video information
+            
+        Raises:
+            HttpError: If there's an error performing the search
+        """
+        try:
+            search_params = {
+                'part': 'snippet',
+                'q': query,
+                'maxResults': min(max_results, 50),  # API limit is 50
+                'type': 'video',
+                **kwargs
+            }
+            
+            request = self.youtube.search().list(**search_params)
+            response = request.execute()
+            
+            videos = []
+            for item in response.get('items', []):
+                video_info = {
+                    'id': item['id']['videoId'],
+                    'title': item['snippet']['title'],
+                    'description': item['snippet']['description'],
+                    'published_at': item['snippet']['publishedAt'],
+                    'channel_id': item['snippet']['channelId'],
+                    'channel_title': item['snippet']['channelTitle']
+                }
+                videos.append(video_info)
+                
+            return videos
+        except HttpError as e:
+            raise HttpError(e.resp, e.content) 
