@@ -46,4 +46,12 @@ jobs:
         YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         BASE_DIR: /tmp
       run: |
-        pytest tests/ --cov=src/ --cov-report=term-missing 
+        pytest tests/ --cov=src/ --cov-report=html --cov-report=term-missing
+
+    - name: Upload coverage report
+      if: always()  # Upload even if tests fail
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: htmlcov/
+        retention-days: 14 
