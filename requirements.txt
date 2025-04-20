@@ -1,0 +1,39 @@
+# yt-dlp: Core library for downloading YouTube videos
+# Provides advanced video downloading capabilities with various formats and options
+# Used in video_downloader.py for handling video downloads
+yt-dlp>=2023.12.30
+
+# requests: HTTP library for making API calls
+# Used for making requests to YouTube Data API
+# Essential for youtube_api.py interactions
+requests>=2.31.0
+
+# beautifulsoup4: HTML parsing library
+# Used for parsing web content and extracting information
+# Helps in handling HTML responses from YouTube
+beautifulsoup4>=4.12.0
+
+# browser-cookie3: Browser cookie handling
+# Helps in managing browser cookies for authenticated requests
+# Useful for accessing content that requires authentication
+browser-cookie3>=0.19.1
+
+# fake-useragent: Provides realistic User-Agent strings
+# Helps avoid request blocking by rotating user agents
+# Improves reliability of web requests
+fake-useragent>=1.4.0
+
+# python-dotenv: Environment variable management
+# Used in config/settings.py to load API keys from .env file
+# Keeps sensitive configuration separate from code
+python-dotenv>=1.0.0
+
+# youtube-transcript-api: Library for fetching YouTube video transcripts
+# Used in transcription_handler.py for getting video transcriptions
+# Essential for the transcript download functionality
+youtube-transcript-api>=0.6.1
+
+# google-api-python-client: Official Google API client library
+# Required for YouTube Data API v3 interactions
+# Used in youtube_api.py for channel and video operations
+google-api-python-client>=2.108.0
