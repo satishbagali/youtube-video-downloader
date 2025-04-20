@@ -162,4 +162,16 @@ def test_invalid_directory_path():
     os.environ['YOUTUBE_API_KEY'] = 'test_api_key'
     
     with pytest.raises(PermissionError, match="Invalid base directory path"):
-        Config() 
+        Config()
+
+def test_get_base_dir(clean_env, tmp_path):
+    """Test that get_base_dir returns the correct base directory path."""
+    # Set up
+    os.environ['BASE_DIR'] = str(tmp_path)
+    os.environ['YOUTUBE_API_KEY'] = 'dummy_key'
+    
+    # Test
+    config = Config()
+    assert config.get_base_dir() == tmp_path
+    assert config.get_base_dir().exists()
+    assert config.get_base_dir().is_dir() 
