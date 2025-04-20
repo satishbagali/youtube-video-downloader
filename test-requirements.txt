@@ -1,0 +1,6 @@
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.1
+google-api-python-client>=2.108.0
+yt-dlp>=2023.12.30
+python-dotenv>=1.0.0 
