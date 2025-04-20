@@ -1,28 +1,37 @@
 name: Python Tests
 
 on:
+  # Trigger on push to main branch
   push:
     branches: [ main ]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - '.github/workflows/**'
+  # Trigger on PR to main branch
   pull_request:
     branches: [ main ]
-    types: [opened, synchronize, reopened]
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - '.github/workflows/**'
+
+# Ensure only one workflow runs at a time
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
-    # Skip duplicate job for pull request if there's already a push
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [3.9, "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.11"
         
     - name: Install dependencies
       run: |
@@ -39,7 +48,7 @@ jobs:
         
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
-      if: github.repository == 'satishbagali/youtube-video-downloader' && (github.event_name == 'push' || github.event_name == 'pull_request')
+      if: github.repository == 'satishbagali/youtube-video-downloader'
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./coverage.xml
