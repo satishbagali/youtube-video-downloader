@@ -1,7 +1,7 @@
 # yt-dlp: Core library for downloading YouTube videos
 # Provides advanced video downloading capabilities with various formats and options
 # Used in video_downloader.py for handling video downloads
-yt-dlp>=2023.11.16
+yt-dlp>=2023.12.30
 
 # requests: HTTP library for making API calls
 # Used for making requests to YouTube Data API
@@ -38,7 +38,16 @@ youtube-transcript-api>=0.6.1
 # Used in youtube_api.py for channel and video operations
 google-api-python-client>=2.108.0
 
-pytest>=8.0.0
-pytest-asyncio>=0.23.5
+# google-auth-httplib2: Google HTTP library for making requests
+# Used in youtube_api.py for channel and video operations
+google-auth-httplib2>=0.1.0
+
+# google-auth-oauthlib: Google OAuth library for making requests
+# Used in youtube_api.py for channel and video operations
+google-auth-oauthlib>=1.0.0
+
+pytest>=7.4.0
+pytest-asyncio>=0.21.1
 pytest-cov>=4.1.0
 pytest-mock>=3.12.0
+pytest-html>=4.1.1
