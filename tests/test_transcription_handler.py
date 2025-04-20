@@ -11,13 +11,14 @@ import os
 from src.transcription_handler import TranscriptionHandler
 
 @pytest.fixture
-def transcription_handler():
+def transcription_handler(tmp_path):
     """
     Fixture to create a TranscriptionHandler instance.
-    Provides a clean instance of the handler for each test,
-    ensuring tests start with a fresh state.
+    Uses pytest's tmp_path fixture to create a temporary directory for testing.
     """
-    handler = TranscriptionHandler()
+    output_dir = tmp_path / "transcripts"
+    os.makedirs(output_dir, exist_ok=True)
+    handler = TranscriptionHandler(output_dir=str(output_dir))
     return handler
 
 @pytest.mark.parametrize("video_id,has_captions", [
