@@ -124,6 +124,14 @@ class Config:
         """
         return self._credentials_path
 
+    def get_base_dir(self) -> Path:
+        """Get the base directory path.
+        
+        Returns:
+            Path: Path to base directory
+        """
+        return self._base_dir
+
     def ensure_directories_exist(self):
         """Ensure all required directories exist"""
         self._ensure_directory_exists(self._downloads_dir)
