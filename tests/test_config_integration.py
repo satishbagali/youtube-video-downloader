@@ -1,5 +1,13 @@
 """
-Test configuration integration
+Integration tests for the Config class.
+
+These tests verify:
+1. Singleton pattern implementation
+2. Environment variable handling
+3. Directory path resolution
+4. API key validation
+5. Error handling for invalid configurations
+6. Directory creation and permissions
 """
 import os
 import pytest
