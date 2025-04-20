@@ -1,5 +1,7 @@
 # YouTube Video Downloader
 
+![Tests](https://github.com/satishbagali/youtube-video-downloader/actions/workflows/tests.yml/badge.svg)
+
 A Python application that allows you to download videos from YouTube channels and extract their transcriptions. This tool is particularly useful for content creators, researchers, and anyone who needs to archive YouTube content with their associated transcripts. The application provides a user-friendly command-line interface and handles various YouTube URL formats and video qualities.
 
 ## Features
@@ -9,6 +11,7 @@ A Python application that allows you to download videos from YouTube channels an
 - Extract and save video transcriptions with timestamps
 - Support for various video quality options
 - Clean and interactive command-line interface
+- Comprehensive test coverage
 
 The application is designed to be both powerful and user-friendly. It can handle various YouTube channel formats, download videos in your preferred quality, and automatically extract transcriptions when available. The interactive interface guides you through the process, making it accessible even for users with minimal technical experience.
 
@@ -215,4 +218,14 @@ Here are some common errors you might encounter and their solutions:
    - Network configuration or proxy issues
    - Solution: Check system date/time or network proxy settings
 
-For any other errors, check the error message for details or report the issue in the project repository. 
+For any other errors, check the error message for details or report the issue in the project repository.
+
+## Testing
+The project uses pytest for testing. Tests are automatically run on every push and pull request through GitHub Actions.
+
+To run tests locally:
+```bash
+python run_tests.py
+```
+
+Test results and coverage reports are available in the `test_results` directory. 
