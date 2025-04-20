@@ -1,7 +1,7 @@
 # yt-dlp: Core library for downloading YouTube videos
 # Provides advanced video downloading capabilities with various formats and options
 # Used in video_downloader.py for handling video downloads
-yt-dlp>=2023.12.30
+yt-dlp>=2024.3.10
 
 # requests: HTTP library for making API calls
 # Used for making requests to YouTube Data API
@@ -26,7 +26,7 @@ fake-useragent>=1.4.0
 # python-dotenv: Environment variable management
 # Used in config/settings.py to load API keys from .env file
 # Keeps sensitive configuration separate from code
-python-dotenv>=1.0.0
+python-dotenv>=1.0.1
 
 # youtube-transcript-api: Library for fetching YouTube video transcripts
 # Used in transcription_handler.py for getting video transcriptions
@@ -37,3 +37,8 @@ youtube-transcript-api>=0.6.1
 # Required for YouTube Data API v3 interactions
 # Used in youtube_api.py for channel and video operations
 google-api-python-client>=2.108.0
+
+pytest==8.3.5
+pytest-html==4.1.1
+pytest-cov==6.1.1
+pytest-asyncio==0.26.0
