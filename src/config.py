@@ -33,6 +33,7 @@ class Config:
     
     # Singleton instance
     _instance = None
+    _initialized = False
     
     def __new__(cls):
         """Ensure only one instance of Config exists."""
@@ -42,21 +43,23 @@ class Config:
         
     def __init__(self):
         """Initialize configuration if not already initialized."""
-        if not hasattr(self, '_initialized'):
+        if not self._initialized:
             # Load environment variables
             load_dotenv(override=True)
             
-            # Get and validate API key first
+            # Get and validate base directory first
+            base_dir = os.getenv('BASE_DIR')
+            if not base_dir:
+                raise ValueError("BASE_DIR not found in environment variables")
+            
+            self._base_dir = Path(base_dir)
+            if not self._base_dir.exists() and not self._base_dir.parent.exists():
+                raise PermissionError("Invalid base directory path")
+            
+            # Get and validate API key
             self._api_key = os.getenv('YOUTUBE_API_KEY')
             if not self._api_key:
                 raise ValueError("YouTube API key not found in environment variables")
-            
-            # Set up base directory
-            self._base_dir = Path(os.getenv('BASE_DIR', os.getcwd()))
-            self._ensure_directory_exists(self._base_dir)
-            
-            # Change to base directory
-            os.chdir(str(self._base_dir))
             
             # Set up other directories
             self._downloads_dir = Path(os.getenv('DOWNLOAD_DIR', self._base_dir / 'downloads'))
@@ -64,11 +67,12 @@ class Config:
             self._credentials_path = Path(os.getenv('CREDENTIALS_PATH', self._base_dir / 'credentials.json'))
             
             # Create necessary directories
+            self._ensure_directory_exists(self._base_dir)
             self._ensure_directory_exists(self._downloads_dir)
             self._ensure_directory_exists(self._transcripts_dir)
             
             # Mark as initialized
-            self._initialized = True
+            self.__class__._initialized = True
     
     def _ensure_directory_exists(self, directory: Path) -> None:
         """Create directory if it doesn't exist.
@@ -134,12 +138,13 @@ class Config:
 
     def ensure_directories_exist(self):
         """Ensure all required directories exist"""
+        self._ensure_directory_exists(self._base_dir)
         self._ensure_directory_exists(self._downloads_dir)
         self._ensure_directory_exists(self._transcripts_dir)
     
     def __setattr__(self, name, value):
         """Prevent modification of critical attributes after initialization"""
-        if hasattr(self, '_initialized') and self._initialized and name.startswith('_'):
+        if self._initialized and name.startswith('_'):
             raise AttributeError(f"Cannot modify {name} after initialization")
         super().__setattr__(name, value)
 
