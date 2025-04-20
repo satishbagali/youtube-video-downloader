@@ -38,11 +38,9 @@ transcripts/
 venv/
 env/
 ENV/ 
+
 # Generated files
 .coverage
-
-# Local environment
-.env.test
 
 # Development logs
 CONVERSATION_LOG.md
