@@ -1,3 +1,5 @@
 """
-YouTube Manager source package
-""" 
+YouTube Video Downloader package
+"""
+
+__version__ = '0.1.0' 
