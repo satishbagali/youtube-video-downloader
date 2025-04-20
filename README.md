@@ -1,6 +1,7 @@
 # YouTube Video Downloader
 
-![Tests](https://github.com/satishbagali/youtube-video-downloader/actions/workflows/tests.yml/badge.svg)
+[![Tests](https://github.com/satishbagali/youtube-video-downloader/actions/workflows/tests.yml/badge.svg)](https://github.com/satishbagali/youtube-video-downloader/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/satishbagali/youtube-video-downloader/branch/main/graph/badge.svg)](https://codecov.io/gh/satishbagali/youtube-video-downloader)
 
 A Python application that allows you to download videos from YouTube channels and extract their transcriptions. This tool is particularly useful for content creators, researchers, and anyone who needs to archive YouTube content with their associated transcripts. The application provides a user-friendly command-line interface and handles various YouTube URL formats and video qualities.
 
@@ -223,9 +224,28 @@ For any other errors, check the error message for details or report the issue in
 ## Testing
 The project uses pytest for testing. Tests are automatically run on every push and pull request through GitHub Actions.
 
+### Running Tests Locally
 To run tests locally:
 ```bash
+# Run all tests with reports
 python run_tests.py
+
+# Run specific test file
+pytest tests/test_config_integration.py -v
+
+# Run with coverage report
+pytest --cov=src --cov-report=html
 ```
 
-Test results and coverage reports are available in the `test_results` directory. 
+### Test Reports
+After running tests, you can find:
+- Test results: `test_results/[timestamp]/test_output.txt`
+- HTML report: `test_results/[timestamp]/report.html`
+- Coverage report: `test_results/[timestamp]/coverage/index.html`
+- JUnit XML report: `test_results/[timestamp]/test-results.xml`
+
+### Continuous Integration
+- Tests run automatically on GitHub Actions for every push and pull request
+- Test results are available in the Actions tab
+- Coverage reports are uploaded to Codecov
+- Status badges show current test and coverage status 
